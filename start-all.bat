@@ -10,7 +10,7 @@ start "Backend" cmd /k "cd backend && python run.py"
 echo.
 echo Starting Frontend...
 echo -------------------
-start "Frontend" cmd /k "cd frontend && npm start"
+start "Frontend" cmd /k "cd frontend_RAG && npm run dev"
 
 echo.
 echo Both services are starting...
