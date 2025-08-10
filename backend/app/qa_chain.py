@@ -1,0 +1,103 @@
+from typing import List
+from langchain_google_genai import ChatGoogleGenerativeAI
+from pyparsing import Any
+from .utils import count_tokens, calculate_cost, log_error, log_info
+from .config import CHAT_MODEL, GOOGLE_API_KEY, TEMPERATURE
+from typing import List, Dict, Any, Optional
+from langchain.prompts import PromptTemplate
+from langchain.chains.question_answering import load_qa_chain
+from langchain.schema import Document
+# ============================================================================
+# ENHANCED QA CHAIN
+# ============================================================================
+
+class SimpleQAChain:
+    """Simplified QA chain implementation"""
+    
+    def __init__(self):
+        self.model = None
+        self.chain = None
+        
+    def reset(self):
+        """Reset the model and chain"""
+        self.model = None
+        self.chain = None
+        
+    def _initialize(self):
+        """Initialize the model and chain"""
+        if not GOOGLE_API_KEY:
+            raise ValueError("Google API key not configured")
+        
+        if self.model is None:
+            try:
+                self.model = ChatGoogleGenerativeAI(
+                    model=CHAT_MODEL,
+                    temperature=TEMPERATURE,
+                    google_api_key=GOOGLE_API_KEY
+                )
+                log_info(f"Model initialized: {CHAT_MODEL}")
+            except Exception as e:
+                log_error(f"Failed to initialize model: {e}")
+                raise
+        
+        if self.chain is None:
+            try:
+                # Create simple QA chain
+                prompt_template = """
+                You are a helpful assistant that answers questions based on the provided context.
+                Please provide accurate and helpful answers based solely on the given context.
+                If the answer is not in the context, please say so clearly.
+                
+                Context: {context}
+                
+                Question: {question}
+                
+                Answer:"""
+                
+                prompt = PromptTemplate(
+                    template=prompt_template,
+                    input_variables=["context", "question"]
+                )
+                
+                self.chain = load_qa_chain(
+                    self.model,
+                    chain_type="stuff",
+                    prompt=prompt
+                )
+                
+                log_info("QA chain initialized")
+                
+            except Exception as e:
+                log_error(f"Failed to initialize QA chain: {e}")
+                raise
+    
+    def answer_question(self, question: str, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Answer a question using the provided documents"""
+        try:
+            self._initialize()
+            
+            # Prepare input for the chain - create proper Document objects
+            input_docs = [
+                Document(
+                    page_content=doc["content"],
+                    metadata={
+                        "filename": doc.get("filename", "Unknown"),
+                        "chunk_id": doc.get("chunk_id", "Unknown")
+                    }
+                ) 
+                for doc in documents
+            ]
+            
+            result = self.chain.invoke({
+                "input_documents": input_docs,
+                "question": question
+            })
+            
+            return result
+            
+        except Exception as e:
+            log_error(f"Error answering question: {e}")
+            raise
+
+# Global QA chain instance
+qa_chain = SimpleQAChain()
