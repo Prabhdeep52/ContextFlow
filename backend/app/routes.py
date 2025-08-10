@@ -1,6 +1,4 @@
-from ast import List
 import datetime
-
 import time
 import uuid
 from fastapi import APIRouter, File, UploadFile , HTTPException
@@ -13,25 +11,8 @@ from typing import List
 from .conversation_manager import conversation_manager
 from .pdf_processing import process_multiple_pdfs
 from .utils import calculate_cost, count_tokens, log_error
-# from .old_app import MetricsResponse
-        # from backend.old_app import ConversationEntry, MetricsResponse, process_multiple_pdfs
 
 router = APIRouter()
-
-# @router.post("/ask", response_model=QuestionResponse)
-# def ask_question(request: QuestionRequest):
-#     return QuestionResponse(
-#         answer="Stubbed answer",
-#         sources=["source1", "source2"],
-#         processing_time=0.5,
-#         total_tokens=120,
-#         cost=0.0003
-#     )
-
-# @router.post("/api-key", response_model=APIKeyResponse)
-# def set_api_key(request: APIKeyRequest):
-#     configure_api_key(request.api_key)
-#     return APIKeyResponse(message="API key set", configured=is_api_key_configured())
 
 # ============================================================================
 # API ROUTES
@@ -114,7 +95,7 @@ async def ask_question(request: QuestionRequest):
             id=str(uuid.uuid4()),
             question=request.question,
             answer=answer,
-            timestamp=datetime.now(),
+            timestamp=datetime.datetime.now(),
             sources=sources,
             processing_time=processing_time,
             total_tokens=total_tokens,
@@ -145,13 +126,18 @@ async def get_documents():
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
 
 @router.post("/configure_api_key")
 async def configure_api_key_endpoint(request: APIKeyRequest):
     """Configure the Google API key"""
     try:
         configure_api_key(request.api_key)
+        
+        # Reinitialize components after API key configuration
+        from .api_key_manager import reinitialize_components
+        reinitialize_components()
+        
         return APIKeyResponse(
             message="API key configured successfully",
             configured=True

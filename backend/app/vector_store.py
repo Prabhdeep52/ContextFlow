@@ -3,9 +3,8 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import numpy as np
 from typing import List, Dict, Any
 
-from pydot import Any
 from .models import DocumentChunk, DocumentMetadata
-from .config import EMBEDDING_MODEL, GOOGLE_API_KEY
+from .config import config
 from .utils import log_error, log_info
 from langchain_community.vectorstores import FAISS
 
@@ -29,11 +28,11 @@ class SimpleVectorStore:
         
     def _initialize_embeddings(self):
         """Initialize embeddings if not done"""
-        if not self.embeddings and GOOGLE_API_KEY:
+        if not self.embeddings and config.GOOGLE_API_KEY:
             try:
                 self.embeddings = GoogleGenerativeAIEmbeddings(
-                    model=EMBEDDING_MODEL,
-                    google_api_key=GOOGLE_API_KEY
+                    model=config.EMBEDDING_MODEL,
+                    google_api_key=config.GOOGLE_API_KEY
                 )
                 log_info("Embeddings initialized")
                 return True
@@ -69,7 +68,7 @@ class SimpleVectorStore:
                     self.vector_store = FAISS.from_texts(texts, self.embeddings, metadatas=metadatas)
                 else:
                     # Add to existing vector store
-                    new_store = faiss.from_texts(texts, self.embeddings, metadatas=metadatas)
+                    new_store = FAISS.from_texts(texts, self.embeddings, metadatas=metadatas)
                     self.vector_store.merge_from(new_store)
                     
                 log_info(f"Vector store updated with {len(chunks)} chunks")

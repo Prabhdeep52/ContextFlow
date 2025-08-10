@@ -1,12 +1,11 @@
-from typing import List
-from langchain_google_genai import ChatGoogleGenerativeAI
-from pyparsing import Any
-from .utils import count_tokens, calculate_cost, log_error, log_info
-from .config import CHAT_MODEL, GOOGLE_API_KEY, TEMPERATURE
 from typing import List, Dict, Any, Optional
+from langchain_google_genai import ChatGoogleGenerativeAI
+from .utils import count_tokens, calculate_cost, log_error, log_info
+from .config import config
 from langchain.prompts import PromptTemplate
 from langchain.chains.question_answering import load_qa_chain
 from langchain.schema import Document
+
 # ============================================================================
 # ENHANCED QA CHAIN
 # ============================================================================
@@ -25,17 +24,17 @@ class SimpleQAChain:
         
     def _initialize(self):
         """Initialize the model and chain"""
-        if not GOOGLE_API_KEY:
+        if not config.GOOGLE_API_KEY:
             raise ValueError("Google API key not configured")
         
         if self.model is None:
             try:
                 self.model = ChatGoogleGenerativeAI(
-                    model=CHAT_MODEL,
-                    temperature=TEMPERATURE,
-                    google_api_key=GOOGLE_API_KEY
+                    model=config.CHAT_MODEL,
+                    temperature=config.TEMPERATURE,
+                    google_api_key=config.GOOGLE_API_KEY
                 )
-                log_info(f"Model initialized: {CHAT_MODEL}")
+                log_info(f"Model initialized: {config.CHAT_MODEL}")
             except Exception as e:
                 log_error(f"Failed to initialize model: {e}")
                 raise
