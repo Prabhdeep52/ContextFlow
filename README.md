@@ -1,8 +1,8 @@
-# **_RESEARCH_RAG_**
+# **ContextFlow**
 
 ## **Overview**
 
-**_RESEARCH_RAG_** is an **advanced RAG system** with **_hierarchical document processing capabilities_**. It intelligently extracts document structure, creates hierarchical chunks, and provides context-aware answers with **precise source attribution**.
+**ContextFlow** is an **advanced RAG system** with **_hierarchical document processing capabilities_**. It intelligently extracts document structure, creates hierarchical chunks, and provides context-aware answers with **precise source attribution**.
 
 ## **Key Features**
 
@@ -67,8 +67,8 @@
 ### **1. Clone Repository**
 
 ```bash
-git clone https://github.com/your-username/RESEARCH_RAG.git
-cd RESEARCH_RAG
+git clone https://github.com/your-username/ContextFlow.git
+cd ContextFlow
 ```
 
 ### **2. Backend Setup**
@@ -155,7 +155,7 @@ GET /metrics          # Enhanced analytics
 ## **Project Structure**
 
 ```
-RESEARCH_RAG/
+ContextFlow/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # Enhanced with hierarchical processing
