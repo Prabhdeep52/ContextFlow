@@ -6,7 +6,7 @@
 
 ## **Key Features**
 
-### 🚀 **\__Hierarchical Document Processing_**
+### 🚀 **_Hierarchical Document Processing_**
 
 - **_Intelligent Structure Detection:_** _AI-powered analysis_ identifies sections, subsections, and document hierarchy
 - **_LangExtract Integration:_** Uses **_Google Gemini_** for _advanced document structure extraction_
