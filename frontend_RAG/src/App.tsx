@@ -1,20 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import axios from "axios"
-import {
-  Upload,
-  FileText,
-  MessageSquare,
-  Key,
-  Send,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  DollarSign,
-  Hash,
-} from "lucide-react"
+import { Upload, FileText, MessageSquare, Key, Send, Loader2, AlertCircle, Clock, DollarSign, Hash } from "lucide-react"
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Textarea } from "./components/ui/textarea"
@@ -52,8 +41,21 @@ export default function RAGQASystem() {
   const API_BASE_URL = "http://localhost:8000"
 
   useEffect(() => {
-    fetchChatHistory()
-    fetchDocuments()
+    // Check API key status on component mount
+    const checkApiKeyStatus = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api_key_status`)
+        setApiKeyConfigured(response.data.configured)
+        if (response.data.configured) {
+          // If already configured, fetch data
+          fetchChatHistory()
+          fetchDocuments()
+        }
+      } catch (error) {
+        console.error("Error checking API key status:", error)
+      }
+    }
+    checkApiKeyStatus()
   }, [])
 
   const fetchChatHistory = async () => {
@@ -175,6 +177,8 @@ export default function RAGQASystem() {
     try {
       await axios.post(`${API_BASE_URL}/configure_api_key`, { api_key: apiKey })
       setApiKeyConfigured(true)
+      fetchChatHistory()
+      fetchDocuments()
     } catch (error) {
       console.error("Error configuring API key:", error)
       alert("Error configuring API key. See console for details.")
@@ -199,7 +203,7 @@ export default function RAGQASystem() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">RAG-based Research Paper Q&A</h1>
@@ -209,187 +213,221 @@ export default function RAGQASystem() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* API Key */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5" /> API Configuration
-                </CardTitle>
-                <CardDescription>Configure your Google API key</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!apiKeyConfigured ? (
-                  <>
-                    <Input
-                      type="password"
-                      placeholder="Enter your Google API Key"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      disabled={loading}
-                    />
-                    <Button onClick={handleConfigureApiKey} disabled={loading || !apiKey.trim()} className="w-full">
-                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Configure API Key"}
-                    </Button>
-                  </>
-                ) : (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>API key configured successfully!</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* File Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" /> Upload Documents
-                </CardTitle>
-                <CardDescription>Upload PDF files</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                    dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-sm text-gray-600">Drag and drop PDFs here or browse</p>
-                  <label className="cursor-pointer">
-                    <span className="text-blue-600 hover:text-blue-500 font-medium">browse files</span>
-                    <input type="file" multiple accept=".pdf" onChange={handleFileChange} disabled={loading} className="hidden" />
-                  </label>
-                </div>
-
-                {selectedFiles.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-gray-700">Selected Files</h4>
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">{file.name}</span>
-                          <span className="text-xs text-gray-500">{formatFileSize(file.size)}</span>
-                        </div>
-                        {uploadProgress[file.name] !== undefined && <Progress value={uploadProgress[file.name]} className="h-2" />}
-                      </div>
-                    ))}
-                    <Button onClick={handleFileUpload} disabled={loading} className="w-full">
-                      {loading ? "Uploading..." : `Upload ${selectedFiles.length} PDF${selectedFiles.length > 1 ? "s" : ""}`}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Documents */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" /> Uploaded Documents ({documents.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {documents.length > 0 ? (
-                  documents.map((doc, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3 mb-2">
-                      <h4 className="font-medium text-sm">{doc.filename}</h4>
-                      <div className="flex gap-4 text-xs text-gray-500">
-                        <span className="flex gap-1">
-                          <Hash className="h-3 w-3" /> {doc.chunk_count} chunks
-                        </span>
-                        <span className="flex gap-1">
-                          <Clock className="h-3 w-3" /> {formatTimestamp(doc.upload_date)}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 text-center">No documents uploaded yet</p>
-                )}
-              </CardContent>
-            </Card>
+        {!apiKeyConfigured ? (
+          <div className="flex justify-center">
+            <div className="w-full max-w-md">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 justify-center">
+                    <Key className="h-5 w-5" /> API Configuration
+                  </CardTitle>
+                  <CardDescription className="text-center">
+                    Configure your Google API key to get started
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Input
+                    type="password"
+                    placeholder="Enter your Google API Key"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    disabled={loading}
+                  />
+                  <Button onClick={handleConfigureApiKey} disabled={loading || !apiKey.trim()} className="w-full">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Configure API Key"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
+        ) : (
+          <div className="flex gap-6 h-[calc(100vh-200px)]">
+            <div className="w-80 flex flex-col gap-4">
+              {/* File Upload Section */}
+              <Card className="flex-shrink-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5" /> Upload Documents
+                  </CardTitle>
+                  <CardDescription>Upload PDF files</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-4 text-center ${
+                      dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-600">Drag PDFs here or</p>
+                    <label className="cursor-pointer">
+                      <span className="text-blue-600 hover:text-blue-500 font-medium text-sm">browse files</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        disabled={loading}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
 
-          {/* Right Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Ask Question */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" /> Ask Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Textarea
-                  placeholder="Ask a question..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  disabled={loading || documents.length === 0}
-                  rows={3}
-                />
-                <Button onClick={handleAskQuestion} disabled={loading || !question.trim() || documents.length === 0} className="w-full">
-                  {loading ? "Processing..." : <><Send className="mr-2 h-4 w-4" /> Ask Question</>}
-                </Button>
-                {documents.length === 0 && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Please upload documents before asking questions.</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Chat History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" /> Conversation History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {chatHistory.length > 0 ? (
-                  <div className="space-y-6 max-h-96 overflow-y-auto">
-                    {chatHistory.map((entry, index) => (
-                      <div key={index} className="border-l-4 border-blue-500 pl-4 space-y-3">
-                        <div className="bg-blue-50 rounded-lg p-3">
-                          <p className="font-medium">Question:</p>
-                          <p>{entry.question}</p>
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-3">
-                          <p className="font-medium">Answer:</p>
-                          <p>{entry.answer}</p>
-                        </div>
-                        {entry.sources && entry.sources.length > 0 && (
-                          <div className="bg-amber-50 rounded-lg p-3">
-                            <p className="font-medium">Sources:</p>
-                            <ul>{entry.sources.map((src, i) => <li key={i}>• {src}</li>)}</ul>
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-gray-700">Selected Files</h4>
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-2">
+                          <div className="flex justify-between">
+                            <span className="text-xs font-medium truncate">{file.name}</span>
+                            <span className="text-xs text-gray-500">{formatFileSize(file.size)}</span>
                           </div>
-                        )}
-                        <div className="flex gap-4 text-xs text-gray-500">
-                          <span className="flex gap-1">
-                            <Clock className="h-3 w-3" /> {formatTimestamp(entry.timestamp)}
-                          </span>
-                          {entry.total_tokens && <Badge variant="secondary">{entry.total_tokens} tokens</Badge>}
-                          {entry.cost && <span className="flex gap-1"><DollarSign className="h-3 w-3" /> ${entry.cost.toFixed(4)}</span>}
+                          {uploadProgress[file.name] !== undefined && (
+                            <Progress value={uploadProgress[file.name]} className="h-1 mt-1" />
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                      <Button onClick={handleFileUpload} disabled={loading} className="w-full" size="sm">
+                        {loading
+                          ? "Uploading..."
+                          : `Upload ${selectedFiles.length} PDF${selectedFiles.length > 1 ? "s" : ""}`}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Uploaded Documents Section */}
+              <Card className="flex-1 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" /> Documents ({documents.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-y-auto">
+                  {documents.length > 0 ? (
+                    <div className="space-y-2">
+                      {documents.map((doc, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-2">
+                          <h4 className="font-medium text-sm truncate">{doc.filename}</h4>
+                          <div className="flex gap-3 text-xs text-gray-500 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Hash className="h-3 w-3" /> {doc.chunk_count}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> {formatTimestamp(doc.upload_date).split(",")[0]}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center">No documents uploaded yet</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex-1 flex flex-col gap-4">
+              {/* Ask Question Section */}
+              <Card className="flex-shrink-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" /> Ask Questions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    placeholder="Ask a question about your uploaded documents..."
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={loading || documents.length === 0}
+                    rows={2}
+                    className="resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleAskQuestion}
+                      disabled={loading || !question.trim() || documents.length === 0}
+                      className="flex-1"
+                    >
+                      {loading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" /> Ask Question
+                        </>
+                      )}
+                    </Button>
                   </div>
-                ) : (
-                  <p className="text-center text-gray-500">No conversation history yet</p>
-                )}
-              </CardContent>
-            </Card>
+                  {documents.length === 0 && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>Please upload documents before asking questions.</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Chat History - Takes up remaining space */}
+              <Card className="flex-1 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" /> Conversation History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-full overflow-y-auto">
+                  {chatHistory.length > 0 ? (
+                    <div className="space-y-4">
+                      {chatHistory.map((entry, index) => (
+                        <div key={index} className="border-l-4 border-blue-500 pl-4 space-y-3">
+                          <div className="bg-blue-50 rounded-lg p-3">
+                            <p className="font-medium text-sm">Question:</p>
+                            <p className="text-sm">{entry.question}</p>
+                          </div>
+                          <div className="bg-green-50 rounded-lg p-3">
+                            <p className="font-medium text-sm">Answer:</p>
+                            <p className="text-sm">{entry.answer}</p>
+                          </div>
+                          {entry.sources && entry.sources.length > 0 && (
+                            <div className="bg-amber-50 rounded-lg p-3">
+                              <p className="font-medium text-sm">Sources:</p>
+                              <ul className="text-sm">
+                                {entry.sources.map((src, i) => (
+                                  <li key={i}>• {src}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div className="flex gap-4 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> {formatTimestamp(entry.timestamp)}
+                            </span>
+                            {entry.total_tokens && <Badge variant="secondary">{entry.total_tokens} tokens</Badge>}
+                            {entry.cost && (
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" /> ${entry.cost.toFixed(4)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-center text-gray-500">
+                        No conversation history yet. Upload documents and ask your first question!
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
