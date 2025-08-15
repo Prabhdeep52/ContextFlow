@@ -10,23 +10,21 @@ from langchain.schema import Document
 # ENHANCED QA CHAIN
 # ============================================================================
 
+
 class SimpleQAChain:
-    """Simplified QA chain implementation"""
-    
+    """Hierarchical QA chain implementation with section and structure context."""
+
     def __init__(self):
         self.model = None
         self.chain = None
-        
+
     def reset(self):
-        """Reset the model and chain"""
         self.model = None
         self.chain = None
-        
+
     def _initialize(self):
-        """Initialize the model and chain"""
         if not config.GOOGLE_API_KEY:
             raise ValueError("Google API key not configured")
-        
         if self.model is None:
             try:
                 self.model = ChatGoogleGenerativeAI(
@@ -38,63 +36,60 @@ class SimpleQAChain:
             except Exception as e:
                 log_error(f"Failed to initialize model: {e}")
                 raise
-        
         if self.chain is None:
             try:
-                # Create simple QA chain
                 prompt_template = """
-                You are ResearchQ&A app built to answer the question based on the context provided , 
-                you are a research assistant, who explain the questions in an easy way that is easy to understand and goes in depth if asked 
-                to by the user. You are a RAG based pipeline that uses the context provided to answer the question
-                One of your main advantage is that u only give the needed context to the chatbot , hence saving api cost.                .
-                
-                Context: {context}
-                
+                You are a research assistant that answers questions using the provided document context and structure.
+                Use the section titles and hierarchy to give precise, grounded answers. Reference sections by name if relevant.
+                Give detailed ans about the topic also , dont just give the brief response about the seciton.
+
+                Section Context:
+                {section_context}
+
+                Content Context:
+                {context}
+
                 Question: {question}
-                
-                Answer:"""
-                
+
+                Answer:
+                """
                 prompt = PromptTemplate(
                     template=prompt_template,
-                    input_variables=["context", "question"]
+                    input_variables=["context", "question", "section_context"]
                 )
-                
                 self.chain = load_qa_chain(
                     self.model,
                     chain_type="stuff",
                     prompt=prompt
                 )
-                
-                log_info("QA chain initialized")
-                
+                log_info("Hierarchical QA chain initialized")
             except Exception as e:
                 log_error(f"Failed to initialize QA chain: {e}")
                 raise
-    
-    def answer_question(self, question: str, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Answer a question using the provided documents"""
+
+    def answer_question(self, question: str, documents: List[Dict[str, Any]], section_context: str = "") -> Dict[str, Any]:
+        """Answer a question using the provided documents and section context."""
         try:
             self._initialize()
-            
-            # Prepare input for the chain - create proper Document objects
             input_docs = [
                 Document(
                     page_content=doc["content"],
                     metadata={
                         "filename": doc.get("filename", "Unknown"),
-                        "chunk_id": doc.get("chunk_id", "Unknown")
+                        "chunk_id": doc.get("chunk_id", "Unknown"),
+                        "section_title": doc.get("section_title"),
+                        "hierarchy_level": doc.get("hierarchy_level"),
+                        "parent_section": doc.get("parent_section"),
                     }
-                ) 
+                )
                 for doc in documents
             ]
-            
             result = self.chain.invoke({
                 "input_documents": input_docs,
-                "question": question
+                "question": question,
+                "section_context": section_context
             })
-            
             return result
-            
         except Exception as e:
             log_error(f"Error answering question: {e}")
             raise

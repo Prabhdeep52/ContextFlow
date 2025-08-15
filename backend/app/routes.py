@@ -64,17 +64,20 @@ async def ask_question(request: QuestionRequest):
         if request.include_context:
             context = conversation_manager.get_conversation_context(request.context_length)
         
-        # Search for relevant documents
-        relevant_docs = vector_store.search(request.question, request.top_k, context)
-        
+
+        # Hierarchical search: get both section and chunk context
+        search_results = vector_store.hierarchical_search(request.question, k_sections=2, k_chunks=request.top_k)
+        relevant_docs = search_results["chunks"]
+        section_context = "\n".join(f"Section: {s['section_title']} (score: {s['score']:.2f})" for s in search_results["sections"])
+
         if not relevant_docs:
             raise HTTPException(
                 status_code=404,
                 detail="No relevant documents found. Please upload some PDFs first."
             )
-        
-        # Generate answer
-        result = qa_chain.answer_question(request.question, relevant_docs)
+
+        # Generate answer with section context
+        result = qa_chain.answer_question(request.question, relevant_docs, section_context=section_context)
         answer = result.get("output_text", result.get("answer", str(result)))
         
         # Calculate metrics

@@ -102,6 +102,11 @@
 
 import uvicorn
 from app.main import app
+import logging
+
+# Suppress verbose logging from langextract and absl
+logging.getLogger("langextract").setLevel(logging.INFO)
+logging.getLogger("absl").setLevel(logging.INFO)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
