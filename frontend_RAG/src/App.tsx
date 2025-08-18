@@ -1,5 +1,5 @@
 "use client"
-
+import 'katex/dist/katex.min.css';
 import type React from "react"
 import { useState, useEffect } from "react"
 import axios from "axios"
@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./com
 import { Badge } from "./components/ui/badge"
 import { Progress } from "./components/ui/progress"
 import { Alert, AlertDescription } from "./components/ui/alert"
+import ReactMarkdown, {} from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 
 interface Document {
   filename: string
@@ -390,7 +393,13 @@ export default function RAGQASystem() {
                           </div>
                           <div className="bg-green-50 rounded-lg p-3">
                             <p className="font-medium text-sm">Answer:</p>
-                            <p className="text-sm">{entry.answer}</p>
+                            <ReactMarkdown
+                              className="text-sm prose prose-sm max-w-none"
+                              remarkPlugins={[remarkMath]}
+                              rehypePlugins={[rehypeKatex]}
+                            >
+                              {entry.answer}
+                            </ReactMarkdown>
                           </div>
                           {entry.sources && entry.sources.length > 0 && (
                             <div className="bg-amber-50 rounded-lg p-3">

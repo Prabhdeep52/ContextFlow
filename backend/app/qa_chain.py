@@ -52,6 +52,13 @@ class SimpleQAChain:
                 Question: {question}
 
                 Answer:
+                Please format your answer using Markdown.
+                - Use bullet points or numbered lists for clarity where appropriate.
+                - Use **bold** text for emphasis on key terms or concepts.
+                - For mathematical formulas or equations, use inline code or block code. If complex, use LaTeX syntax within code blocks (e.g., `$E=mc^2$` or ````latex
+\int_0^1 x^2 dx
+````).
+
                 """
                 prompt = PromptTemplate(
                     template=prompt_template,

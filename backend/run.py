@@ -103,10 +103,21 @@
 import uvicorn
 from app.main import app
 import logging
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Suppress verbose logging from langextract and absl
 logging.getLogger("langextract").setLevel(logging.INFO)
 logging.getLogger("absl").setLevel(logging.INFO)
+
+# Check for LangSmith API Key
+if not os.getenv("LANGCHAIN_API_KEY"):
+    logging.warning("LANGCHAIN_API_KEY not set. LangSmith tracing will not be enabled.")
+else:
+    logging.info("LANGCHAIN_API_KEY is set. LangSmith tracing enabled.")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
